@@ -1,0 +1,100 @@
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { WarrantyError } from "../src/domain/warranty";
+import type { WarrantyLookup, WarrantyLookupResult } from "../src/services/warranty-service";
+import { PopoverController } from "../src/ui/popover-controller";
+
+const RESULT: WarrantyLookupResult = {
+  warranty: {
+    serialNumber: "PF123ABC",
+    checkedAt: "2026-08-19T08:00:00.000Z",
+    coverages: [
+      {
+        warrantyType: "Premier Support",
+        purchaseDate: "2023-09-04",
+        coverageStartDate: "2023-09-06",
+        coverageEndDate: "2026-09-05",
+      },
+    ],
+  },
+  fromCache: false,
+  cachedAt: "2026-08-19T08:00:00.000Z",
+};
+
+describe("PopoverController", () => {
+  let controller: PopoverController | undefined;
+
+  afterEach(() => {
+    controller?.destroy();
+    controller = undefined;
+    document.body.replaceChildren();
+  });
+
+  it("zeigt zuerst Laden und danach eindeutig bezeichnete Garantiedaten", async () => {
+    const getWarranty = vi.fn().mockResolvedValue(RESULT);
+    controller = new PopoverController(createLookup(getWarranty));
+    const anchor = createAnchor();
+
+    controller.toggle(anchor, { deviceName: "NB-PF123ABC", serialNumber: "PF123ABC" });
+
+    expect(document.querySelector('[role="status"]')?.textContent).toContain("werden geladen");
+    await vi.waitFor(() => expect(document.querySelector(".coverage-card")).not.toBeNull());
+    expect(document.querySelector(".warranty-popover")?.textContent).toContain("Kaufdatum");
+    expect(document.querySelector(".warranty-popover")?.textContent).toContain("Garantiebeginn");
+    expect(document.querySelector(".warranty-popover")?.textContent).toContain("Garantieende");
+    expect(anchor.getAttribute("aria-expanded")).toBe("true");
+  });
+
+  it("schliesst durch erneuten Klick, Klick ausserhalb und Escape", async () => {
+    controller = new PopoverController(createLookup(vi.fn().mockResolvedValue(RESULT)));
+    const anchor = createAnchor();
+    const device = { deviceName: "NB-PF123ABC", serialNumber: "PF123ABC" };
+
+    controller.toggle(anchor, device);
+    controller.toggle(anchor, device);
+    expect(document.querySelector<HTMLDivElement>(".warranty-popover")?.hidden).toBe(true);
+
+    controller.toggle(anchor, device);
+    document.body.dispatchEvent(new Event("pointerdown", { bubbles: true }));
+    expect(document.querySelector<HTMLDivElement>(".warranty-popover")?.hidden).toBe(true);
+
+    controller.toggle(anchor, device);
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    expect(document.querySelector<HTMLDivElement>(".warranty-popover")?.hidden).toBe(true);
+    expect(document.activeElement).toBe(anchor);
+  });
+
+  it("zeigt verständliche Fehler und erlaubt einen erneuten Versuch", async () => {
+    const getWarranty = vi
+      .fn()
+      .mockRejectedValueOnce(new WarrantyError("NETWORK_ERROR", "Netzwerkfehler."))
+      .mockResolvedValueOnce(RESULT);
+    controller = new PopoverController(createLookup(getWarranty));
+    const anchor = createAnchor();
+
+    controller.toggle(anchor, { deviceName: "NB-PFNETWORK", serialNumber: "PFNETWORK" });
+    await vi.waitFor(() =>
+      expect(document.querySelector('[role="alert"]')?.textContent).toContain("Netzwerkfehler"),
+    );
+
+    document.querySelector<HTMLButtonElement>(".refresh-button")?.click();
+    await vi.waitFor(() => expect(document.querySelector(".coverage-card")).not.toBeNull());
+    expect(getWarranty).toHaveBeenLastCalledWith(
+      "PFNETWORK",
+      expect.objectContaining({ forceRefresh: true }),
+    );
+  });
+});
+
+function createLookup(getWarranty: WarrantyLookup["getWarranty"]): WarrantyLookup {
+  return {
+    getWarranty,
+    clearCache: vi.fn().mockResolvedValue(undefined),
+  };
+}
+
+function createAnchor(): HTMLButtonElement {
+  const anchor = document.createElement("button");
+  anchor.type = "button";
+  document.body.append(anchor);
+  return anchor;
+}

@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Lokaler Mock-Prototyp für Garantieinformationen in Intune." />
+    <title>Windows-Geräte | Intune Mock</title>
+    <link rel="stylesheet" href="/assets/app.css" />
+  </head>
+  <body>
+    <header class="top-bar">
+      <a
+        class="brand"
+        href="#main-content"
+        aria-label="Microsoft Intune Mock – zum Inhalt springen"
+      >
+        <span class="brand-mark" aria-hidden="true"
+          ><span></span><span></span><span></span><span></span
+        ></span>
+        <span>Microsoft Intune <small>Mock</small></span>
+      </a>
+      <div class="top-actions" aria-label="Simulierte Kopfleiste">
+        <button type="button" aria-label="Simulierte Hilfe">?</button>
+        <span class="avatar" aria-hidden="true">MK</span>
+      </div>
+    </header>
+
+    <div class="app-shell">
+      <nav class="sidebar" aria-label="Mock-Navigation">
+        <div class="nav-heading">Microsoft Intune</div>
+        <a href="#">Startseite</a>
+        <a href="#">Dashboard</a>
+        <a class="active" href="#main-content" aria-current="page">Geräte</a>
+        <a href="#">Apps</a>
+        <a href="#">Berichte</a>
+        <a href="#">Mandantenverwaltung</a>
+      </nav>
+
+      <main id="main-content" class="main-content">
+        <div class="breadcrumb" aria-label="Brotkrumennavigation">Geräte / Windows</div>
+        <div class="title-row">
+          <div>
+            <p class="eyebrow">Windows</p>
+            <h1>Windows-Geräte</h1>
+            <p class="subtitle">
+              Lokale Testansicht – keine Verbindung zu Microsoft Intune oder Lenovo
+            </p>
+          </div>
+          <span class="mock-badge">LOKALER MOCK</span>
+        </div>
+
+        <section class="notice" aria-labelledby="notice-heading">
+          <span class="notice-icon" aria-hidden="true">i</span>
+          <div>
+            <strong id="notice-heading">Sichere Simulationsumgebung</strong>
+            <p>
+              Alle Geräte- und Garantiedaten sind erfunden. Das Informationssymbol löst nur eine
+              lokale Mock-Abfrage aus.
+            </p>
+          </div>
+        </section>
+
+        <section class="device-panel" aria-labelledby="device-list-heading">
+          <div class="panel-heading">
+            <div>
+              <h2 id="device-list-heading">Alle Geräte</h2>
+              <span id="device-count" class="device-count">0 Geräte</span>
+            </div>
+            <div class="request-counter" title="Anzahl der simulierten Provider-Aufrufe">
+              Mock-Abfragen: <strong id="request-count">0</strong>
+            </div>
+          </div>
+
+          <div class="toolbar">
+            <label class="filter-field" for="device-filter">
+              <span aria-hidden="true">⌕</span>
+              <span class="visually-hidden">Geräte filtern</span>
+              <input id="device-filter" type="search" placeholder="Nach Gerätename filtern" />
+            </label>
+            <button id="sort-devices" type="button">↕ Namen sortieren</button>
+            <button id="reload-table" type="button">↻ Tabelle neu laden</button>
+            <button id="reuse-row" type="button">▤ Zeile wiederverwenden</button>
+            <button id="clear-cache" type="button">Cache leeren</button>
+          </div>
+
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col">Gerätename</th>
+                  <th scope="col">Primärer Benutzer</th>
+                  <th scope="col">Konformität</th>
+                  <th scope="col">Letzter Check-in</th>
+                </tr>
+              </thead>
+              <tbody id="device-table-body"></tbody>
+            </table>
+          </div>
+
+          <p id="mock-status" class="mock-status" role="status" aria-live="polite">
+            Prototyp bereit. Wähle ein Informationssymbol neben einem NB-Gerät.
+          </p>
+        </section>
+
+        <details class="test-guide">
+          <summary>Enthaltene Testszenarien</summary>
+          <dl>
+            <dt>PF123ABC / PF987XYZ</dt>
+            <dd>Erfolgreiche Garantiedaten, einschliesslich mehrerer Garantiepositionen.</dd>
+            <dt>PF404404 / PF000000</dt>
+            <dd>Seriennummer nicht gefunden beziehungsweise keine Garantiedaten.</dd>
+            <dt>PFNETWORK / PFOFFLINE / PFDENIED</dt>
+            <dd>Netzwerk-, Dienst- und Berechtigungsfehler.</dd>
+          </dl>
+        </details>
+      </main>
+    </div>
+
+    <script type="module" src="/assets/app.js"></script>
+  </body>
+</html>
