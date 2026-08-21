@@ -83,6 +83,50 @@ describe("PopoverController", () => {
       expect.objectContaining({ forceRefresh: true }),
     );
   });
+
+  it("zeigt keine verspätete Antwort des zuvor geöffneten Geräts", async () => {
+    let resolveFirstRequest: ((value: WarrantyLookupResult) => void) | undefined;
+    const firstRequest = new Promise<WarrantyLookupResult>((resolve) => {
+      resolveFirstRequest = resolve;
+    });
+    const secondResult: WarrantyLookupResult = {
+      ...RESULT,
+      warranty: {
+        ...RESULT.warranty,
+        serialNumber: "PF987XYZ",
+        coverages: [{ warrantyType: "Garantieverlängerung" }],
+      },
+    };
+    const getWarranty = vi
+      .fn()
+      .mockReturnValueOnce(firstRequest)
+      .mockResolvedValueOnce(secondResult);
+    controller = new PopoverController(createLookup(getWarranty));
+    const firstAnchor = createAnchor();
+    const secondAnchor = createAnchor();
+
+    controller.toggle(firstAnchor, {
+      deviceName: "NB-PF123ABC",
+      serialNumber: "PF123ABC",
+    });
+    controller.toggle(secondAnchor, {
+      deviceName: "NB-PF987XYZ",
+      serialNumber: "PF987XYZ",
+    });
+    await vi.waitFor(() =>
+      expect(document.querySelector(".warranty-popover")?.textContent).toContain(
+        "Garantieverlängerung",
+      ),
+    );
+
+    resolveFirstRequest?.(RESULT);
+    await Promise.resolve();
+
+    expect(document.querySelector(".warranty-popover")?.textContent).toContain("NB-PF987XYZ");
+    expect(document.querySelector(".warranty-popover")?.textContent).not.toContain(
+      "Premier Support",
+    );
+  });
 });
 
 function createLookup(getWarranty: WarrantyLookup["getWarranty"]): WarrantyLookup {

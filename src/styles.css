@@ -245,8 +245,7 @@ h1 {
   font-weight: 600;
 }
 
-.device-count,
-.request-counter {
+.device-count {
   color: #616161;
   font-size: 12px;
 }
@@ -258,8 +257,7 @@ h1 {
   padding: 0 22px 16px;
 }
 
-.toolbar button,
-.refresh-button {
+.toolbar button {
   min-height: 34px;
   padding: 6px 11px;
   border: 1px solid #b3b3b3;
@@ -269,8 +267,7 @@ h1 {
   font-size: 12px;
 }
 
-.toolbar button:hover,
-.refresh-button:hover {
+.toolbar button:hover {
   border-color: #606060;
   background: #f5f5f5;
 }
@@ -346,33 +343,7 @@ td:first-child {
   font-weight: 600;
 }
 
-.warranty-info-button {
-  display: inline-grid;
-  width: 21px;
-  height: 21px;
-  flex: 0 0 auto;
-  place-items: center;
-  padding: 0;
-  border: 1px solid #0078d4;
-  border-radius: 50%;
-  color: #0067b8;
-  background: #ffffff;
-  font-family: Georgia, serif;
-  font-size: 13px;
-  font-weight: 700;
-  line-height: 1;
-}
-
-.warranty-info-button:hover,
-.warranty-info-button[aria-expanded="true"] {
-  color: #ffffff;
-  background: #0078d4;
-}
-
-.warranty-info-button:focus-visible,
-.toolbar button:focus-visible,
-.refresh-button:focus-visible,
-.popover-close-button:focus-visible {
+.toolbar button:focus-visible {
   outline: 2px solid #242424;
   outline-offset: 2px;
 }
@@ -423,141 +394,6 @@ td:first-child {
   margin: 0;
 }
 
-.warranty-popover {
-  position: fixed;
-  z-index: 1000;
-  width: min(370px, calc(100vw - 24px));
-  max-height: min(620px, calc(100vh - 24px));
-  overflow-y: auto;
-  border: 1px solid #b7b7b7;
-  border-radius: 4px;
-  background: #ffffff;
-  box-shadow: 0 8px 24px rgb(0 0 0 / 18%);
-}
-
-.warranty-popover[hidden] {
-  display: none;
-}
-
-.warranty-content {
-  padding: 17px;
-}
-
-.warranty-heading-row {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 14px;
-}
-
-.warranty-heading-row h2 {
-  margin: 0;
-  font-size: 17px;
-  font-weight: 600;
-}
-
-.popover-close-button {
-  display: grid;
-  width: 28px;
-  height: 28px;
-  flex: 0 0 auto;
-  place-items: center;
-  padding: 0;
-  border: 0;
-  border-radius: 2px;
-  background: transparent;
-  font-size: 22px;
-  line-height: 1;
-}
-
-.popover-close-button:hover {
-  background: #eeeeee;
-}
-
-.warranty-serial {
-  margin: 3px 0 14px;
-  color: #616161;
-  font-size: 12px;
-}
-
-.warranty-loading {
-  display: flex;
-  min-height: 70px;
-  align-items: center;
-  gap: 10px;
-  color: #424242;
-  font-size: 13px;
-}
-
-.spinner {
-  width: 18px;
-  height: 18px;
-  border: 2px solid #c7e0f4;
-  border-top-color: #0078d4;
-  border-radius: 50%;
-  animation: spin 700ms linear infinite;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.coverage-list {
-  display: grid;
-  gap: 10px;
-}
-
-.coverage-card {
-  padding: 12px;
-  border: 1px solid #e0e0e0;
-  border-left: 3px solid #0078d4;
-  background: #fafafa;
-}
-
-.coverage-card h3 {
-  margin: 0 0 10px;
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.coverage-card dl {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 6px 12px;
-  margin: 0;
-  font-size: 12px;
-}
-
-.coverage-card dt {
-  color: #616161;
-}
-
-.coverage-card dd {
-  margin: 0;
-  font-weight: 600;
-}
-
-.warranty-metadata {
-  margin: 12px 0;
-  color: #616161;
-  font-size: 11px;
-}
-
-.warranty-error {
-  margin-bottom: 12px;
-  padding: 12px;
-  border-left: 3px solid #c50f1f;
-  color: #621b16;
-  background: #fdf3f4;
-  font-size: 13px;
-}
-
-.warranty-error p {
-  margin: 5px 0 0;
-}
-
 .visually-hidden {
   position: absolute;
   width: 1px;
@@ -577,15 +413,5 @@ td:first-child {
   .main-content {
     padding-right: 20px;
     padding-left: 20px;
-  }
-
-  .request-counter {
-    display: none;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .spinner {
-    animation-duration: 1.5s;
   }
 }

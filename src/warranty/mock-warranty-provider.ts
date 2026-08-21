@@ -49,8 +49,6 @@ const ERROR_RESPONSES: Readonly<Record<string, WarrantyError>> = {
 };
 
 export class MockWarrantyProvider implements WarrantyProvider {
-  readonly #requestCounts = new Map<string, number>();
-
   public constructor(
     private readonly delayMilliseconds = 650,
     private readonly now: () => Date = () => new Date(),
@@ -61,11 +59,6 @@ export class MockWarrantyProvider implements WarrantyProvider {
     options: WarrantyRequestOptions = {},
   ): Promise<WarrantyInfo> {
     const normalizedSerialNumber = serialNumber.toUpperCase();
-    this.#requestCounts.set(
-      normalizedSerialNumber,
-      (this.#requestCounts.get(normalizedSerialNumber) ?? 0) + 1,
-    );
-
     await wait(this.delayMilliseconds, options.signal);
 
     const configuredError = ERROR_RESPONSES[normalizedSerialNumber];
@@ -82,10 +75,6 @@ export class MockWarrantyProvider implements WarrantyProvider {
       ...structuredClone(configuredResponse),
       checkedAt: this.now().toISOString(),
     };
-  }
-
-  public getTotalRequestCount(): number {
-    return [...this.#requestCounts.values()].reduce((total, count) => total + count, 0);
   }
 }
 

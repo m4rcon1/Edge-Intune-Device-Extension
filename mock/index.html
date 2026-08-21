@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="Lokaler Mock-Prototyp für Garantieinformationen in Intune." />
     <title>Windows-Geräte | Intune Mock</title>
-    <link rel="stylesheet" href="/assets/app.css" />
+    <link rel="stylesheet" href="/assets/mock.css" />
   </head>
-  <body>
+  <body data-warranty-extension-mock="true">
     <header class="top-bar">
       <a
         class="brand"
@@ -66,9 +66,6 @@
               <h2 id="device-list-heading">Alle Geräte</h2>
               <span id="device-count" class="device-count">0 Geräte</span>
             </div>
-            <div class="request-counter" title="Anzahl der simulierten Provider-Aufrufe">
-              Mock-Abfragen: <strong id="request-count">0</strong>
-            </div>
           </div>
 
           <div class="toolbar">
@@ -98,7 +95,7 @@
           </div>
 
           <p id="mock-status" class="mock-status" role="status" aria-live="polite">
-            Prototyp bereit. Wähle ein Informationssymbol neben einem NB-Gerät.
+            Mock-Seite bereit. Lade die Extension, um Garantieinformationen zu aktivieren.
           </p>
         </section>
 
@@ -116,6 +113,6 @@
       </main>
     </div>
 
-    <script type="module" src="/assets/app.js"></script>
+    <script type="module" src="/assets/mock.js"></script>
   </body>
 </html>

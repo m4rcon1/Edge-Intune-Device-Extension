@@ -1,29 +1,39 @@
 import { context } from "esbuild";
 import { cp, mkdir, rm } from "node:fs/promises";
+import {
+  extensionBackgroundBuildOptions,
+  extensionContentBuildOptions,
+  mockPageBuildOptions,
+} from "./build-options.mjs";
 
-const outputDirectory = "dist";
+const extensionOutputDirectory = "dist";
+const mockOutputDirectory = ".dev";
 
-await rm(outputDirectory, { recursive: true, force: true });
-await mkdir(outputDirectory, { recursive: true });
-await cp("mock/index.html", `${outputDirectory}/index.html`);
+await Promise.all([
+  rm(extensionOutputDirectory, { recursive: true, force: true }),
+  rm(mockOutputDirectory, { recursive: true, force: true }),
+]);
+await Promise.all([
+  mkdir(extensionOutputDirectory, { recursive: true }),
+  mkdir(mockOutputDirectory, { recursive: true }),
+]);
+await Promise.all([
+  cp("manifest/manifest.json", `${extensionOutputDirectory}/manifest.json`),
+  cp("mock/index.html", `${mockOutputDirectory}/index.html`),
+]);
 
-const buildContext = await context({
-  entryPoints: ["src/main.ts"],
-  bundle: true,
-  outdir: `${outputDirectory}/assets`,
-  entryNames: "app",
-  format: "esm",
-  platform: "browser",
-  target: ["es2022"],
-  sourcemap: true,
-  logLevel: "info",
-});
+const [contentContext, backgroundContext, mockContext] = await Promise.all([
+  context(extensionContentBuildOptions),
+  context(extensionBackgroundBuildOptions),
+  context(mockPageBuildOptions),
+]);
 
-await buildContext.watch();
-const server = await buildContext.serve({
-  servedir: outputDirectory,
+await Promise.all([contentContext.watch(), backgroundContext.watch(), mockContext.watch()]);
+const server = await mockContext.serve({
+  servedir: mockOutputDirectory,
   host: "127.0.0.1",
   port: 4173,
 });
 
-console.log(`Lokaler Mock-Prototyp: http://127.0.0.1:${server.port}`);
+console.log(`Mock-Seite: http://127.0.0.1:${server.port}`);
+console.log("Unpacked Extension: dist/");

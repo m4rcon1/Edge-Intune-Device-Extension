@@ -4,6 +4,7 @@ export interface ParsedDeviceName {
 }
 
 const LENOVO_NOTEBOOK_NAME = /^NB-([A-Z0-9]+)$/i;
+const LENOVO_SERIAL_NUMBER = /^[A-Z0-9]+$/i;
 
 export function parseDeviceName(value: string): ParsedDeviceName | null {
   const deviceName = value.trim();
@@ -22,4 +23,9 @@ export function parseDeviceName(value: string): ParsedDeviceName | null {
 
 export function isSupportedDeviceName(value: string): boolean {
   return parseDeviceName(value) !== null;
+}
+
+export function normalizeSerialNumber(value: string): string | null {
+  const serialNumber = value.trim();
+  return LENOVO_SERIAL_NUMBER.test(serialNumber) ? serialNumber.toUpperCase() : null;
 }
