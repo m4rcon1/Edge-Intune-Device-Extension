@@ -1,25 +1,25 @@
-# Edge Intune Device Extension – Manifest-V3-Prototyp
+# Edge Intune Device Extension – Phase 4B
 
-Phase 3 stellt eine echte, lokal installierbare Microsoft-Edge-Erweiterung bereit. Sie greift als
-Content Script in eine separat gestartete Mock-Intune-Seite ein und bezieht ausschliesslich
-simulierte Garantiedaten von ihrem Background Service Worker.
+Die Manifest-V3-Extension ergänzt sowohl die lokale Mock-Seite als auch die echte
+Windows-Geräteliste im Microsoft Intune Admin Center. Sie zeigt Garantieinformationen über den
+bestehenden Background Service Worker an; sämtliche Garantiedaten bleiben simuliert.
 
-Es bestehen keine Verbindungen zu Microsoft Intune, Lenovo, Microsoft Graph, einem Backend oder
-anderen externen Diensten. Sämtliche Geräte- und Garantiedaten sind erfunden.
+Es bestehen keine Verbindungen zu Lenovo, Microsoft Graph, Intune-APIs, einem Backend oder anderen
+externen Datendiensten. In Intune wird ausschliesslich der gerenderte Gerätename gelesen. Die
+Extension führt keine schreibenden Intune-Aktionen aus.
 
 ## Architektur
 
 ```text
-Lokale Mock-Intune-Seite
-        │
-        ▼
-Content Script und Popover
-        │ chrome.runtime Messaging
-        ▼
-Background Service Worker
-        ├── WarrantyService
-        ├── MockWarrantyProvider
-        └── chrome.storage.local
+Lokale Mock-Seite ── MockDeviceListAdapter ─┐
+                                            ├── DeviceDecorator und Popover
+Intune React-Blade ─ IntuneDeviceListAdapter┘             │
+                                                          │ chrome.runtime Messaging
+                                                          ▼
+                                               Background Service Worker
+                                               ├── WarrantyService
+                                               ├── MockWarrantyProvider
+                                               └── chrome.storage.local
 ```
 
 Die Mock-Webseite lädt nur ihren eigenen Tabellen- und Simulationscode. Sie importiert keinen
@@ -29,6 +29,7 @@ wenn die gebaute Extension tatsächlich im Browser geladen ist.
 ## Funktionsumfang
 
 - Erkennung von Gerätenamen nach `NB-[Seriennummer]`
+- sprachunabhängige, fail-closed Erkennung der echten Intune-DetailsList
 - idempotente Informationssymbole, auch bei dynamischen und wiederverwendeten Zeilen
 - Popover mit Lade-, Erfolgs- und strukturierten Fehlerzuständen
 - Schliessen per erneutem Klick, Aussenklick, Schliessschaltfläche oder `Escape`
@@ -109,7 +110,7 @@ neu gestartet werden. Beenden: `Ctrl+C`.
 2. **Entwicklermodus** aktivieren.
 3. **Entpackte Erweiterung laden** auswählen.
 4. Den Projektordner `dist/` auswählen.
-5. Prüfen, dass „Intune Lenovo Warranty Mock“ ohne Fehler angezeigt wird.
+5. Prüfen, dass „Intune Lenovo Warranty Prototype“ ohne Fehler angezeigt wird.
 
 Unter Chromium lautet die Verwaltungsadresse entsprechend `chrome://extensions`.
 
@@ -131,6 +132,52 @@ nicht automatisch neu:
 
 1. Auf `edge://extensions` bei der Extension **Neu laden** auswählen.
 2. Danach die Mock-Seite neu laden.
+
+## Manueller Intune-Test unter Edge
+
+### Voraussetzungen
+
+- Microsoft Edge mit aktiviertem Entwicklermodus
+- berechtigter Intune-Testaccount
+- für Entwicklung und Tests bevorzugt eine reine Leseberechtigung wie Global Reader
+- ein separater Test-Tenant ohne produktive Gerätedaten
+
+### Extension laden
+
+```bash
+npm ci
+npm run build
+```
+
+Danach:
+
+1. `edge://extensions` öffnen.
+2. **Entwicklermodus** aktivieren.
+3. **Entpackte Erweiterung laden** auswählen und den erzeugten Ordner `dist/` öffnen.
+4. Nach jedem neuen Build auf der Extension-Karte **Neu laden** auswählen.
+
+### Intune-Test
+
+1. Selbst bei [https://intune.microsoft.com](https://intune.microsoft.com) anmelden.
+2. **Geräte → Windows → Windows-Geräte** öffnen.
+3. Prüfen, dass jeder gültige anonymisierte Name nach `NB-[Seriennummer]` genau ein `i` erhält.
+4. Prüfen, dass nicht konforme Namen kein Symbol erhalten.
+5. Für alle gültigen Geräte Popover, Ladezustand, Mock-Ergebnis und Schliessen per erneutem Klick,
+   Aussenklick und `Escape` prüfen.
+6. Eine andere rein lesende Intune-Ansicht öffnen und zur Windows-Geräteliste zurückkehren. Die
+   Symbole müssen ohne Duplikate erneut erscheinen.
+7. Rein lesend sortieren und scrollen. Symbole und Popover dürfen keinem falschen Gerät zugeordnet
+   werden.
+8. Die Seite neu laden. Jedes Symbol darf weiterhin nur einmal vorhanden sein.
+9. Eine andere Intune-Ansicht mit einer Tabelle öffnen. Dort dürfen keine Warranty-Symbole
+   erscheinen.
+10. Die Extension deaktivieren und Intune neu laden. Es dürfen keine Symbole erscheinen. Danach die
+    Extension wieder aktivieren und die Seite neu laden.
+11. Frame- und Service-Worker-Konsole auf unbehandelte Fehler sowie Ausgaben realer Seriennummern
+    prüfen.
+
+Die Tests dürfen ausschliesslich lesende Navigation, Sortierung und Darstellung verwenden. Keine
+Geräteaktionen, Synchronisationen oder Konfigurationsänderungen ausführen.
 
 ## Tests und Qualitätsprüfungen
 
@@ -168,11 +215,15 @@ npm audit
 
 ### Content Script und Popover
 
-1. Mock-Seite öffnen.
-2. Mit `F12` die normalen Seitentools öffnen.
-3. Fehler des Content Scripts erscheinen in der Konsole der Mock-Seite.
-4. Im Elements-/Elemente-Bereich lassen sich `.warranty-info-button` und
-   `#warranty-popover` untersuchen.
+Auf der Mock-Seite erscheinen Content-Script-Fehler in der normalen Seitenkonsole. In Intune läuft
+das Content Script innerhalb eines Cross-Origin-React-Blade-Iframes unter
+`https://sandbox-N.reactblade.portal.azure.net/React/Index…`. In den Edge-Entwicklertools muss für
+die Untersuchung der Ausführungskontext dieses Frames ausgewählt werden. `N` ist nicht stabil und
+darf nicht fest codiert werden.
+
+Im Elements-/Elemente-Bereich lassen sich `.warranty-info-button` und `#warranty-popover`
+untersuchen. Keine Cookies, Tokens, Storage-Inhalte oder Netzwerkantworten für die DOM-Diagnose
+auslesen.
 
 ### Background Service Worker
 
@@ -195,19 +246,25 @@ globalen Variablen.
 Das Manifest verwendet nur:
 
 - `storage`: für den persistenten Cache in `chrome.storage.local`.
-- `content_scripts.matches: http://127.0.0.1:4173/*`: damit der Browser das Content Script
-  automatisch und ausschliesslich auf dem festgelegten lokalen Entwicklungsport injizieren kann.
-  Das Content Script prüft zusätzlich eine eindeutige Markierung der Mock-Seite und beendet sich
-  auf anderen Seiten ohne DOM-Eingriff.
+- `content_scripts.matches: http://127.0.0.1:4173/*`: lokaler Mock auf dem festgelegten Port.
+- `content_scripts.matches: https://*.reactblade.portal.azure.net/React/Index*`: die von Intune
+  verwendeten, wechselnden React-Blade-Frames.
+- `content_scripts.all_frames: true`: jeder Frame wird unabhängig gegen die Match-Patterns geprüft;
+  nur so kann das Content Script im passenden Cross-Origin-Frame laufen.
 
-Es gibt keine `host_permissions` und insbesondere keine Berechtigungen für Intune, Lenovo,
-Microsoft Graph, `tabs`, `webRequest` oder `<all_urls>`.
+Die Intune-Ausführung verlangt zusätzlich die exakte Referrer-Origin `https://intune.microsoft.com`
+und eine eindeutige DOM-Signatur aus DetailsList, `role="table"`, dem sprachunabhängigen
+`deviceName`-Header und passenden Rowheader-Zellen. Ohne diese Signatur verändert die Extension den
+DOM nicht.
+
+Es gibt keine separate `host_permissions`-Deklaration und keine Freigaben für Lenovo,
+Microsoft Graph, den Intune-Top-Level-Host, `tabs`, `webRequest` oder `<all_urls>`.
 
 ## Simulierte Testszenarien
 
 | Seriennummer | Verhalten                                                     |
 | ------------ | ------------------------------------------------------------- |
-| `PF123ABC`   | Erfolgreiche Abfrage mit Kaufdatum und Garantiezeitraum       |
+| `PF123ABC`   | Erfolgreiche Abfrage mit Garantiebeginn und Garantieende      |
 | `PF987XYZ`   | Erfolgreiche Abfrage mit zwei Garantiepositionen              |
 | `PF555AAA`   | Erfolgreiches Gerät für die simulierte Zeilenwiederverwendung |
 | `PF404404`   | Seriennummer nicht gefunden                                   |
@@ -218,13 +275,14 @@ Microsoft Graph, `tabs`, `webRequest` oder `<all_urls>`.
 
 ## Bekannte Einschränkungen
 
-- noch keine Verbindung zum echten Microsoft Intune
-- noch keine Analyse des Intune-DOM
+- das Intune-DOM ist keine öffentliche stabile API; Microsoft kann semantische Attribute ändern
+- `data-automation-*`-Attribute und React-Blade-Hosts können sich durch Portal-Updates verändern
 - noch keine Lenovo-API oder Untersuchung der Lenovo-Webseite
 - ausschliesslich reproduzierbare Mock-Garantiedaten
 - noch keine produktive Authentifizierung; ein Backend ist im aktuellen Zielbild bewusst nicht
   vorgesehen
-- Content-Script-Freigabe nur für die lokale HTTP-Mock-Seite auf `127.0.0.1`
+- kein Microsoft Graph und keine Intune-API
+- das Popover bleibt innerhalb des jeweiligen Cross-Origin-Iframe-Viewports
 - Extension muss nach einem Watch-Build manuell im Browser neu geladen werden
 
 `LocalStorageWarrantyCache` bleibt ausschliesslich als Phase-2-Referenz und Regressionstest im

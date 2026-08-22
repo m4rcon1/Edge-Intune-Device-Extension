@@ -10,7 +10,6 @@ const RESULT: WarrantyLookupResult = {
     coverages: [
       {
         warrantyType: "Premier Support",
-        purchaseDate: "2023-09-04",
         coverageStartDate: "2023-09-06",
         coverageEndDate: "2026-09-05",
       },
@@ -29,6 +28,12 @@ describe("PopoverController", () => {
     document.body.replaceChildren();
   });
 
+  it("verändert den DOM vor dem ersten Öffnen nicht", () => {
+    controller = new PopoverController(createLookup(vi.fn().mockResolvedValue(RESULT)));
+
+    expect(document.querySelector(".warranty-popover")).toBeNull();
+  });
+
   it("zeigt zuerst Laden und danach eindeutig bezeichnete Garantiedaten", async () => {
     const getWarranty = vi.fn().mockResolvedValue(RESULT);
     controller = new PopoverController(createLookup(getWarranty));
@@ -38,7 +43,7 @@ describe("PopoverController", () => {
 
     expect(document.querySelector('[role="status"]')?.textContent).toContain("werden geladen");
     await vi.waitFor(() => expect(document.querySelector(".coverage-card")).not.toBeNull());
-    expect(document.querySelector(".warranty-popover")?.textContent).toContain("Kaufdatum");
+    expect(document.querySelector(".warranty-popover")?.textContent).not.toContain("Kaufdatum");
     expect(document.querySelector(".warranty-popover")?.textContent).toContain("Garantiebeginn");
     expect(document.querySelector(".warranty-popover")?.textContent).toContain("Garantieende");
     expect(anchor.getAttribute("aria-expanded")).toBe("true");
@@ -126,6 +131,17 @@ describe("PopoverController", () => {
     expect(document.querySelector(".warranty-popover")?.textContent).not.toContain(
       "Premier Support",
     );
+  });
+
+  it("schliesst beim Repositionieren, wenn der Anchor entfernt wurde", () => {
+    controller = new PopoverController(createLookup(vi.fn().mockResolvedValue(RESULT)));
+    const anchor = createAnchor();
+
+    controller.toggle(anchor, { deviceName: "NB-PF123ABC", serialNumber: "PF123ABC" });
+    anchor.remove();
+    window.dispatchEvent(new Event("scroll"));
+
+    expect(document.querySelector<HTMLDivElement>(".warranty-popover")?.hidden).toBe(true);
   });
 });
 

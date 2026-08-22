@@ -13,6 +13,7 @@ export class PopoverController {
   #device: DeviceReference | null = null;
   #requestSequence = 0;
   #abortController: AbortController | null = null;
+  #listenersAttached = false;
 
   public constructor(private readonly warrantyLookup: WarrantyLookup) {
     this.#element = document.createElement("div");
@@ -21,12 +22,6 @@ export class PopoverController {
     this.#element.hidden = true;
     this.#element.setAttribute("role", "dialog");
     this.#element.setAttribute("aria-label", "Garantieinformationen");
-    document.body.append(this.#element);
-
-    document.addEventListener("pointerdown", this.handleOutsidePointerDown, true);
-    document.addEventListener("keydown", this.handleKeyDown);
-    window.addEventListener("resize", this.reposition);
-    window.addEventListener("scroll", this.reposition, true);
   }
 
   public toggle(anchor: HTMLButtonElement, device: DeviceReference): void {
@@ -62,15 +57,16 @@ export class PopoverController {
 
   public destroy(): void {
     this.close();
-    document.removeEventListener("pointerdown", this.handleOutsidePointerDown, true);
-    document.removeEventListener("keydown", this.handleKeyDown);
-    window.removeEventListener("resize", this.reposition);
-    window.removeEventListener("scroll", this.reposition, true);
+    this.detachListeners();
     this.#element.remove();
   }
 
   private open(anchor: HTMLButtonElement, device: DeviceReference): void {
     this.close();
+    if (!this.#element.isConnected) {
+      document.body.append(this.#element);
+    }
+    this.attachListeners();
     this.#anchor = anchor;
     this.#device = device;
     anchor.setAttribute("aria-expanded", "true");
@@ -199,9 +195,6 @@ export class PopoverController {
     heading.textContent = coverage.warrantyType;
     const data = document.createElement("dl");
 
-    if (coverage.purchaseDate !== undefined) {
-      appendDefinition(data, "Kaufdatum", formatDateOnly(coverage.purchaseDate));
-    }
     if (coverage.coverageStartDate !== undefined) {
       appendDefinition(data, "Garantiebeginn", formatDateOnly(coverage.coverageStartDate));
     }
@@ -256,6 +249,30 @@ export class PopoverController {
     this.#element.style.top = `${Math.max(pagePadding, preferredTop)}px`;
     this.#element.style.left = `${Math.max(pagePadding, Math.min(preferredLeft, maximumLeft))}px`;
   };
+
+  private attachListeners(): void {
+    if (this.#listenersAttached) {
+      return;
+    }
+
+    document.addEventListener("pointerdown", this.handleOutsidePointerDown, true);
+    document.addEventListener("keydown", this.handleKeyDown);
+    window.addEventListener("resize", this.reposition);
+    window.addEventListener("scroll", this.reposition, true);
+    this.#listenersAttached = true;
+  }
+
+  private detachListeners(): void {
+    if (!this.#listenersAttached) {
+      return;
+    }
+
+    document.removeEventListener("pointerdown", this.handleOutsidePointerDown, true);
+    document.removeEventListener("keydown", this.handleKeyDown);
+    window.removeEventListener("resize", this.reposition);
+    window.removeEventListener("scroll", this.reposition, true);
+    this.#listenersAttached = false;
+  }
 }
 
 function appendDefinition(list: HTMLDListElement, term: string, description: string): void {

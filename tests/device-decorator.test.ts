@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { DeviceDecorator } from "../src/ui/device-decorator";
+import { MockDeviceListAdapter } from "../src/ui/mock-device-list-adapter";
 
 describe("DeviceDecorator", () => {
   afterEach(() => {
@@ -14,7 +15,7 @@ describe("DeviceDecorator", () => {
       toggle: vi.fn(),
       closeIfAnchoredWithin: vi.fn(),
     };
-    const decorator = new DeviceDecorator(tableBody, popover);
+    const decorator = new DeviceDecorator(new MockDeviceListAdapter(tableBody), popover);
 
     decorator.start();
     decorator.scan();
@@ -32,7 +33,7 @@ describe("DeviceDecorator", () => {
     const tableBody = document.querySelector("tbody");
     const name = document.querySelector<HTMLElement>(".device-name");
     if (tableBody === null || name === null) throw new Error("Test-Tabelle fehlt");
-    const decorator = new DeviceDecorator(tableBody, {
+    const decorator = new DeviceDecorator(new MockDeviceListAdapter(tableBody), {
       toggle: vi.fn(),
       closeIfAnchoredWithin: vi.fn(),
     });

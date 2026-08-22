@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { MockWarrantyProvider } from "../src/warranty/mock-warranty-provider";
 
 describe("MockWarrantyProvider", () => {
-  it("mappt Kaufdatum und Garantiebeginn als getrennte Felder", async () => {
+  it("liefert nur die fachlich benötigten Garantiedaten", async () => {
     const provider = new MockWarrantyProvider(0, () => new Date("2026-08-19T08:00:00.000Z"));
 
     const result = await provider.getWarranty("pf123abc");
@@ -13,7 +13,6 @@ describe("MockWarrantyProvider", () => {
       coverages: [
         {
           warrantyType: "Premier Support",
-          purchaseDate: "2023-09-04",
           coverageStartDate: "2023-09-06",
           coverageEndDate: "2026-09-05",
         },

@@ -1,4 +1,5 @@
 import { parseDeviceName } from "../domain/device-name";
+import type { DeviceListAdapter } from "./device-list-adapter";
 interface DevicePopover {
   toggle(anchor: HTMLButtonElement, device: { deviceName: string; serialNumber: string }): void;
   closeIfAnchoredWithin(container: Element): void;
@@ -10,37 +11,52 @@ interface Decoration {
 }
 
 export class DeviceDecorator {
-  readonly #decorations = new WeakMap<HTMLElement, Decoration>();
-  readonly #observer: MutationObserver;
+  readonly #decorations = new Map<HTMLElement, Decoration>();
+  #currentRoot: HTMLElement | null = null;
+  #started = false;
 
   public constructor(
-    private readonly root: HTMLElement,
+    private readonly adapter: DeviceListAdapter,
     private readonly popover: DevicePopover,
-  ) {
-    this.#observer = new MutationObserver(() => this.scan());
-  }
+  ) {}
 
   public start(): void {
-    this.scan();
-    this.#observer.observe(this.root, {
-      childList: true,
-      subtree: true,
-      characterData: true,
-    });
+    if (this.#started) {
+      return;
+    }
+
+    this.#started = true;
+    this.adapter.start(this.handleAdapterChange);
   }
 
   public stop(): void {
-    this.#observer.disconnect();
+    if (!this.#started) {
+      return;
+    }
+
+    this.adapter.stop();
+    this.#started = false;
+    this.removeAllDecorations();
+    this.#currentRoot = null;
   }
 
   public scan(): void {
-    for (const nameElement of this.root.querySelectorAll<HTMLElement>(".device-name")) {
+    const nameElements = new Set(this.adapter.findDeviceNameElements());
+    for (const [nameElement, decoration] of this.#decorations) {
+      if (!nameElements.has(nameElement) || !nameElement.isConnected) {
+        this.popover.closeIfAnchoredWithin(decoration.button);
+        decoration.button.remove();
+        this.#decorations.delete(nameElement);
+      }
+    }
+
+    for (const nameElement of nameElements) {
       this.decorate(nameElement);
     }
   }
 
   private decorate(nameElement: HTMLElement): void {
-    const parsedDevice = parseDeviceName(nameElement.textContent ?? "");
+    const parsedDevice = parseDeviceName(this.adapter.getDeviceName(nameElement));
     const currentDecoration = this.#decorations.get(nameElement);
 
     if (parsedDevice === null) {
@@ -69,7 +85,9 @@ export class DeviceDecorator {
 
     const button = document.createElement("button");
     button.type = "button";
-    button.className = "warranty-info-button";
+    button.className = ["warranty-info-button", this.adapter.buttonClassName]
+      .filter(Boolean)
+      .join(" ");
     button.dataset.warrantyOwned = "true";
     button.dataset.serialNumber = parsedDevice.serialNumber;
     button.setAttribute(
@@ -80,9 +98,12 @@ export class DeviceDecorator {
     button.setAttribute("aria-controls", "warranty-popover");
     button.setAttribute("aria-expanded", "false");
     button.textContent = "i";
-    button.addEventListener("click", () => this.popover.toggle(button, parsedDevice));
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      this.popover.toggle(button, parsedDevice);
+    });
 
-    nameElement.before(button);
+    this.adapter.insertInformationButton(nameElement, button);
     this.#decorations.set(nameElement, {
       button,
       serialNumber: parsedDevice.serialNumber,
@@ -101,4 +122,21 @@ export class DeviceDecorator {
       button.remove();
     }
   }
+
+  private removeAllDecorations(): void {
+    for (const decoration of this.#decorations.values()) {
+      this.popover.closeIfAnchoredWithin(decoration.button);
+      decoration.button.remove();
+    }
+    this.#decorations.clear();
+  }
+
+  private readonly handleAdapterChange = (): void => {
+    const nextRoot = this.adapter.getRoot();
+    if (this.#currentRoot !== null && this.#currentRoot !== nextRoot) {
+      this.popover.closeIfAnchoredWithin(this.#currentRoot);
+    }
+    this.#currentRoot = nextRoot;
+    this.scan();
+  };
 }

@@ -7,7 +7,6 @@ const SUCCESS_RESPONSES: Readonly<Record<string, Omit<WarrantyInfo, "checkedAt">
     coverages: [
       {
         warrantyType: "Premier Support",
-        purchaseDate: "2023-09-04",
         coverageStartDate: "2023-09-06",
         coverageEndDate: "2026-09-05",
       },

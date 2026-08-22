@@ -6,7 +6,12 @@ interface ExtensionManifest {
   permissions?: string[];
   host_permissions?: string[];
   background?: { service_worker?: string; type?: string };
-  content_scripts?: Array<{ matches?: string[]; js?: string[]; css?: string[] }>;
+  content_scripts?: Array<{
+    matches?: string[];
+    js?: string[];
+    css?: string[];
+    all_frames?: boolean;
+  }>;
 }
 
 describe("Manifest V3", () => {
@@ -19,10 +24,16 @@ describe("Manifest V3", () => {
     expect(manifest.background).toEqual({ service_worker: "background.js", type: "module" });
     expect(manifest.content_scripts).toEqual([
       expect.objectContaining({
-        matches: ["http://127.0.0.1:4173/*"],
+        matches: ["http://127.0.0.1:4173/*", "https://*.reactblade.portal.azure.net/React/Index*"],
         js: ["content.js"],
         css: ["content.css"],
+        all_frames: true,
       }),
     ]);
+
+    const serializedManifest = JSON.stringify(manifest);
+    expect(serializedManifest).not.toContain("<all_urls>");
+    expect(serializedManifest).not.toContain("lenovo.com");
+    expect(serializedManifest).not.toContain("graph.microsoft.com");
   });
 });

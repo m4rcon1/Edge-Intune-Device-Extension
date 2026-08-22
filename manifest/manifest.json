@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Intune Lenovo Warranty Mock",
+  "name": "Intune Lenovo Warranty Prototype",
   "version": "0.2.0",
-  "description": "Lokaler Manifest-V3-Prototyp mit simulierten Lenovo-Garantieinformationen.",
+  "description": "Manifest-V3-Prototyp für Intune mit simulierten Lenovo-Garantieinformationen.",
   "permissions": ["storage"],
   "background": {
     "service_worker": "background.js",
@@ -10,11 +10,11 @@
   },
   "content_scripts": [
     {
-      "matches": ["http://127.0.0.1:4173/*"],
+      "matches": ["http://127.0.0.1:4173/*", "https://*.reactblade.portal.azure.net/React/Index*"],
       "css": ["content.css"],
       "js": ["content.js"],
       "run_at": "document_idle",
-      "all_frames": false
+      "all_frames": true
     }
   ]
 }

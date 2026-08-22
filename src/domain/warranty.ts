@@ -1,6 +1,5 @@
 export interface WarrantyCoverage {
   warrantyType: string;
-  purchaseDate?: string;
   coverageStartDate?: string;
   coverageEndDate?: string;
 }
