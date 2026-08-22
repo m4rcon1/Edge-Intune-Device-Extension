@@ -68,6 +68,26 @@ describe("LenovoWebWarrantyProvider", () => {
     expect(fetchImplementation).not.toHaveBeenCalled();
   });
 
+  it("ruft eine receiver-sensitive Browser-Fetch-Funktion mit dem Worker-Globalobjekt auf", async () => {
+    const fetchImplementation = vi.fn(function (this: typeof globalThis): Promise<Response> {
+      if (this !== globalThis) {
+        throw new TypeError("Illegal invocation");
+      }
+      return Promise.resolve(
+        response({
+          code: 0,
+          data: { currentWarranty: CURRENT_WARRANTY },
+        }),
+      );
+    });
+    const provider = createProvider(fetchImplementation);
+
+    await expect(provider.getWarranty("PF123ABC")).resolves.toMatchObject({
+      coverages: [{ warrantyType: "Vor-Ort-Support" }],
+    });
+    expect(fetchImplementation).toHaveBeenCalledOnce();
+  });
+
   it("verwendet name als Fallback für einen fehlenden deliveryTypeName", async () => {
     const provider = createProvider(
       vi.fn().mockResolvedValue(

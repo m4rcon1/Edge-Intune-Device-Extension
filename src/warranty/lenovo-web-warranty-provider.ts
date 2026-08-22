@@ -42,7 +42,7 @@ export class LenovoWebWarrantyProvider implements WarrantyProvider {
     }
 
     try {
-      const response = await this.fetchImplementation(LENOVO_WARRANTY_ENDPOINT, {
+      const response = await this.fetchImplementation.call(globalThis, LENOVO_WARRANTY_ENDPOINT, {
         method: "POST",
         headers: {
           Accept: "application/json",
