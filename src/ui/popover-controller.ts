@@ -1,4 +1,5 @@
 import { normalizeWarrantyError, type WarrantyCoverage } from "../domain/warranty";
+import { createLenovoWarrantyUrl } from "../lenovo/lenovo-warranty-link";
 import type { WarrantyLookup, WarrantyLookupResult } from "../services/warranty-service";
 import { formatDateOnly, formatDateTime } from "./date-format";
 
@@ -118,6 +119,7 @@ export class PopoverController {
     spinner.setAttribute("aria-hidden", "true");
     loading.append(spinner, document.createTextNode("Garantieinformationen werden geladen …"));
     content.append(loading);
+    this.appendLenovoLink(content, device.serialNumber);
   }
 
   private renderResult(device: DeviceReference, result: WarrantyLookupResult): void {
@@ -131,7 +133,7 @@ export class PopoverController {
 
     const metadata = document.createElement("p");
     metadata.className = "warranty-metadata";
-    metadata.textContent = `${result.fromCache ? "Aus lokalem Cache" : "Simuliert abgefragt"} · ${formatDateTime(result.cachedAt)}`;
+    metadata.textContent = `${result.fromCache ? "Aus lokalem Cache" : "Neu abgefragt"} · ${formatDateTime(result.cachedAt)}`;
 
     const refreshButton = document.createElement("button");
     refreshButton.type = "button";
@@ -140,6 +142,7 @@ export class PopoverController {
     refreshButton.addEventListener("click", () => void this.loadWarranty(true));
 
     content.append(coverages, metadata, refreshButton);
+    this.appendLenovoLink(content, device.serialNumber);
   }
 
   private renderError(device: DeviceReference, error: unknown): void {
@@ -161,6 +164,7 @@ export class PopoverController {
     retryButton.textContent = "Erneut versuchen";
     retryButton.addEventListener("click", () => void this.loadWarranty(true));
     content.append(errorBox, retryButton);
+    this.appendLenovoLink(content, device.serialNumber);
   }
 
   private createFrame(device: DeviceReference): HTMLDivElement {
@@ -192,9 +196,10 @@ export class PopoverController {
     const section = document.createElement("section");
     section.className = "coverage-card";
     const heading = document.createElement("h3");
-    heading.textContent = coverage.warrantyType;
+    heading.textContent = "Garantie";
     const data = document.createElement("dl");
 
+    appendDefinition(data, "Garantietyp", coverage.warrantyType);
     if (coverage.coverageStartDate !== undefined) {
       appendDefinition(data, "Garantiebeginn", formatDateOnly(coverage.coverageStartDate));
     }
@@ -204,6 +209,19 @@ export class PopoverController {
 
     section.append(heading, data);
     return section;
+  }
+
+  private appendLenovoLink(content: HTMLElement, serialNumber: string): void {
+    const linkContainer = document.createElement("p");
+    linkContainer.className = "lenovo-warranty-link-row";
+    const link = document.createElement("a");
+    link.className = "lenovo-warranty-link";
+    link.href = createLenovoWarrantyUrl(serialNumber);
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    link.textContent = "Weitere Informationen bei Lenovo ↗";
+    linkContainer.append(link);
+    content.append(linkContainer);
   }
 
   private readonly handleOutsidePointerDown = (event: PointerEvent): void => {
@@ -299,8 +317,8 @@ function errorDescription(code: string): string {
   const descriptions: Record<string, string> = {
     SERIAL_NOT_FOUND: "Für diese Seriennummer wurde kein Gerät gefunden.",
     NO_WARRANTY_DATA: "Für dieses Gerät liegen keine Garantiedaten vor.",
-    NETWORK_ERROR: "Die simulierte Anfrage konnte nicht übertragen werden.",
-    SERVICE_UNAVAILABLE: "Der simulierte Garantiedienst ist momentan nicht erreichbar.",
+    NETWORK_ERROR: "Die Garantiedaten konnten derzeit nicht geladen werden.",
+    SERVICE_UNAVAILABLE: "Der Garantiedienst ist momentan nicht erreichbar.",
     PERMISSION_DENIED: "Der Zugriff auf die Garantieinformationen wurde abgelehnt.",
     UNKNOWN_ERROR: "Die Garantieinformationen konnten nicht geladen werden.",
   };

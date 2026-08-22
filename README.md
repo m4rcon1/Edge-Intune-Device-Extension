@@ -1,11 +1,13 @@
-# Edge Intune Device Extension – Phase 4B
+# Edge Intune Device Extension – Phase 5B
 
 Die Manifest-V3-Extension ergänzt sowohl die lokale Mock-Seite als auch die echte
-Windows-Geräteliste im Microsoft Intune Admin Center. Sie zeigt Garantieinformationen über den
-bestehenden Background Service Worker an; sämtliche Garantiedaten bleiben simuliert.
+Windows-Geräteliste im Microsoft Intune Admin Center. In Intune fragt sie Lenovo-Garantiedaten erst
+nach einem Klick auf das Informationssymbol und einem Cache Miss über den Background Service Worker
+ab. Die lokale Mock-Seite bleibt vollständig simuliert und erzeugt keine Lenovo-Requests.
 
-Es bestehen keine Verbindungen zu Lenovo, Microsoft Graph, Intune-APIs, einem Backend oder anderen
-externen Datendiensten. In Intune wird ausschliesslich der gerenderte Gerätename gelesen. Die
+Es bestehen keine Verbindungen zu Microsoft Graph, Intune-APIs, einem Backend oder anderen
+externen Datendiensten. In Intune wird ausschliesslich der gerenderte Gerätename gelesen. An Lenovo
+werden nur die daraus validierte Seriennummer sowie die festen Werte `ch` und `de` übertragen. Die
 Extension führt keine schreibenden Intune-Aktionen aus.
 
 ## Architektur
@@ -17,9 +19,14 @@ Intune React-Blade ─ IntuneDeviceListAdapter┘             │
                                                           │ chrome.runtime Messaging
                                                           ▼
                                                Background Service Worker
-                                               ├── WarrantyService
-                                               ├── MockWarrantyProvider
-                                               └── chrome.storage.local
+                                               ├── lokale Seite
+                                               │   └── MockWarrantyProvider
+                                               └── Intune
+                                                   └── WarrantyService
+                                                       ├── Lenovo-Cache
+                                                       └── Cache Miss
+                                                           └── LenovoWebWarrantyProvider
+                                                               └── Lenovo getIbaseInfo
 ```
 
 Die Mock-Webseite lädt nur ihren eigenen Tabellen- und Simulationscode. Sie importiert keinen
@@ -40,6 +47,70 @@ wenn die gebaute Extension tatsächlich im Browser geladen ist.
 - kein Cache für technische Fehler
 - manueller Refresh und Cache-Löschung
 - persistenter Extension-Cache mit `chrome.storage.local`
+- echte Lenovo-Abfrage in Intune ausschliesslich nach Benutzeraktion und Cache Miss
+- gerätespezifischer Lenovo-Link in Lade-, Erfolgs- und Fehlerzuständen
+
+## Lenovo-Datenquelle
+
+Die produktive Intune-Integration verwendet den Endpunkt hinter Lenovos öffentlicher
+Garantie-Webseite:
+
+```text
+POST https://pcsupport.lenovo.com/ch/de/api/v4/upsell/redport/getIbaseInfo
+```
+
+Dies ist eine **undokumentierte Web-Schnittstelle und kein offizieller API-Vertrag**. Sie benötigt
+aktuell weder Lenovo-Login noch Konto, ClientID, API-Key, OAuth, Cookies oder CSRF-Token. Lenovo kann
+Endpunkt, Schema, CORS-Regeln oder Bot-/CDN-Schutz ohne Vorankündigung ändern.
+
+Der Request verwendet `credentials: "omit"` und enthält ausschliesslich:
+
+```json
+{
+  "serialNumber": "<VALIDIERTE_SERIENNUMMER>",
+  "country": "ch",
+  "language": "de"
+}
+```
+
+`Origin`, `Referer`, `User-Agent` und browserinterne CORS-Header werden nicht manipuliert. Die
+Lenovo-Rohantwort wird unmittelbar im Provider auf das herstellerunabhängige Domain-Modell
+reduziert und weder gespeichert noch an das Content Script weitergegeben.
+
+Für das Popover wird bewusst nur `currentWarranty` verwendet:
+
+- `deliveryTypeName` → Garantietyp
+- bei fehlendem oder leerem `deliveryTypeName`: `name` → Garantietyp
+- `startDate` → Garantiebeginn
+- `endDate` → Garantieende
+- `baseWarranties`, insbesondere separate Batteriegarantien, werden nicht angezeigt
+
+Der interaktive Request hat ein Timeout von zehn Sekunden. Das hält den Popover bei einem externen
+Dienstausfall responsiv, ohne aggressive Retries einzuführen.
+
+## Cache und Upgrade von Phase 4B
+
+- erfolgreiche Lenovo-Ergebnisse: sieben Tage
+- `SERIAL_NOT_FOUND` und `NO_WARRANTY_DATA`: 24 Stunden
+- Netzwerk-, Berechtigungs-, Dienst- und Schemafehler: nicht cachen
+
+Der produktive Lenovo-Cache verwendet den Namespace `warranty-cache-v2:lenovo-web:`. Alte
+Phase-4B-Mockdaten unter `warranty-cache-v1:` werden dadurch niemals als echte Lenovo-Ergebnisse
+gelesen. Der alte Namespace bleibt nur für die lokale Mock-Seite erhalten.
+
+## Lenovo-Deep-Link
+
+Das Popover erzeugt unabhängig vom Ergebnis der JSON-Abfrage folgenden Link aus der bereits
+validierten und URL-encodierten Seriennummer:
+
+```text
+https://pcsupport.lenovo.com/ch/de/products/<SERIAL_NUMBER>/warranty
+```
+
+Lenovo leitet ihn auf den vollständigen Produktpfad weiter. Ein normaler Link mit `target="_blank"`
+und `rel="noopener noreferrer"` öffnet einen neuen Tab; die Intune-Seite bleibt geöffnet. Deshalb
+ist keine `tabs`-Permission nötig. Wenn der undokumentierte JSON-Endpunkt ausfällt, bleibt dieser
+manuelle Fallback verfügbar.
 
 ## Voraussetzungen
 
@@ -162,7 +233,7 @@ Danach:
 2. **Geräte → Windows → Windows-Geräte** öffnen.
 3. Prüfen, dass jeder gültige anonymisierte Name nach `NB-[Seriennummer]` genau ein `i` erhält.
 4. Prüfen, dass nicht konforme Namen kein Symbol erhalten.
-5. Für alle gültigen Geräte Popover, Ladezustand, Mock-Ergebnis und Schliessen per erneutem Klick,
+5. Für alle gültigen Geräte Popover, Ladezustand, echtes Lenovo-Ergebnis und Schliessen per erneutem Klick,
    Aussenklick und `Escape` prüfen.
 6. Eine andere rein lesende Intune-Ansicht öffnen und zur Windows-Geräteliste zurückkehren. Die
    Symbole müssen ohne Duplikate erneut erscheinen.
@@ -175,6 +246,31 @@ Danach:
     Extension wieder aktivieren und die Seite neu laden.
 11. Frame- und Service-Worker-Konsole auf unbehandelte Fehler sowie Ausgaben realer Seriennummern
     prüfen.
+
+### Phase-5B-Abnahme
+
+1. Nach `npm ci` und `npm run build` die entpackte Extension in Edge neu laden. Alte Mock-Cachewerte
+   dürfen nach dem Upgrade nicht im Intune-Popover erscheinen; der neue Namespace macht dafür
+   keine manuelle Storage-Bereinigung erforderlich.
+2. Beim ersten gültigen Gerät `i` auswählen: erst Ladezustand, danach Garantietyp, Garantiebeginn
+   und Garantieende prüfen. Es darf kein Kaufdatum erscheinen.
+3. Zwei weitere vorbereitete gültige Geräte einzeln öffnen. Die Daten müssen jeweils zum aktuellen
+   Gerät gehören.
+4. Ein bereits erfolgreich geladenes Gerät schliessen und erneut öffnen. Im Popover muss
+   `Aus lokalem Cache` erscheinen. Das ist die sichere Prüfung ohne Network-Logging oder Ausgabe
+   einer Seriennummer.
+5. **Weitere Informationen bei Lenovo ↗** auswählen. Lenovo muss in einem neuen Tab das richtige
+   Gerät öffnen beziehungsweise auf dessen kanonischen Produktpfad weiterleiten; Intune bleibt
+   geöffnet.
+6. Der Link bei einem API-Fehler wird automatisiert getestet. Eine manuelle Störung des Lenovo-
+   Dienstes oder seines Schutzmechanismus ist nicht erforderlich.
+7. Prüfen, dass die zwei nicht konformen Gerätenamen weiterhin kein `i` erhalten.
+8. Filtern, sortieren, scrollen und zwischen Intune-Ansichten navigieren. Symbole dürfen weder
+   dupliziert noch einem falschen Gerät zugeordnet werden.
+9. Auf anderen Intune-Listen, beispielsweise Plattform-Skripten, dürfen keine Symbole und keine
+   Lenovo-Abfragen entstehen.
+10. Konsole des React-Blade-Frames und Service Worker prüfen: keine unbehandelten Fehler, keine
+    Lenovo-Rohantworten und keine normalen Produktionslogs mit vollständigen Seriennummern.
 
 Die Tests dürfen ausschliesslich lesende Navigation, Sortierung und Darstellung verwenden. Keine
 Geräteaktionen, Synchronisationen oder Konfigurationsänderungen ausführen.
@@ -246,6 +342,8 @@ globalen Variablen.
 Das Manifest verwendet nur:
 
 - `storage`: für den persistenten Cache in `chrome.storage.local`.
+- `host_permissions: https://pcsupport.lenovo.com/*`: ausschliesslich für den HTTPS-Request des
+  Lenovo-Providers im Background Service Worker.
 - `content_scripts.matches: http://127.0.0.1:4173/*`: lokaler Mock auf dem festgelegten Port.
 - `content_scripts.matches: https://*.reactblade.portal.azure.net/React/Index*`: die von Intune
   verwendeten, wechselnden React-Blade-Frames.
@@ -257,8 +355,8 @@ und eine eindeutige DOM-Signatur aus DetailsList, `role="table"`, dem sprachunab
 `deviceName`-Header und passenden Rowheader-Zellen. Ohne diese Signatur verändert die Extension den
 DOM nicht.
 
-Es gibt keine separate `host_permissions`-Deklaration und keine Freigaben für Lenovo,
-Microsoft Graph, den Intune-Top-Level-Host, `tabs`, `webRequest` oder `<all_urls>`.
+Es gibt keine Freigaben für weitere Lenovo-Hosts, Microsoft Graph, den Intune-Top-Level-Host,
+`tabs`, `webRequest` oder `<all_urls>`.
 
 ## Simulierte Testszenarien
 
@@ -277,10 +375,12 @@ Microsoft Graph, den Intune-Top-Level-Host, `tabs`, `webRequest` oder `<all_urls
 
 - das Intune-DOM ist keine öffentliche stabile API; Microsoft kann semantische Attribute ändern
 - `data-automation-*`-Attribute und React-Blade-Hosts können sich durch Portal-Updates verändern
-- noch keine Lenovo-API oder Untersuchung der Lenovo-Webseite
-- ausschliesslich reproduzierbare Mock-Garantiedaten
-- noch keine produktive Authentifizierung; ein Backend ist im aktuellen Zielbild bewusst nicht
-  vorgesehen
+- der Lenovo-Endpunkt `getIbaseInfo` ist undokumentiert und kann sich ohne Vorankündigung ändern
+- Lenovo kann Schema, Endpoint, CORS oder Bot-/CDN-Schutz zukünftig inkompatibel ändern
+- die offizielle Lenovo eSupport API wird nicht verwendet, da sie eine nicht sicher in einer
+  Extension speicherbare ClientID verlangt
+- kein Backend; es ist im aktuellen Zielbild bewusst nicht vorgesehen
+- die lokale Mock-Seite verwendet weiterhin ausschliesslich reproduzierbare Mock-Garantiedaten
 - kein Microsoft Graph und keine Intune-API
 - das Popover bleibt innerhalb des jeweiligen Cross-Origin-Iframe-Viewports
 - Extension muss nach einem Watch-Build manuell im Browser neu geladen werden

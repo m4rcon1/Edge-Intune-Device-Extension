@@ -6,16 +6,20 @@ export interface ExtensionStorageArea {
   remove(keys: string | string[]): Promise<void>;
 }
 
-const CACHE_KEY_PREFIX = "warranty-cache-v1:";
+export const WARRANTY_CACHE_NAMESPACES = {
+  mock: "warranty-cache-v1:",
+  lenovoWeb: "warranty-cache-v2:lenovo-web:",
+} as const;
 
 export class ChromeStorageWarrantyCache implements WarrantyCache {
   public constructor(
     private readonly storage: ExtensionStorageArea,
     private readonly now: () => Date = () => new Date(),
+    private readonly keyPrefix: string = WARRANTY_CACHE_NAMESPACES.mock,
   ) {}
 
   public async get(serialNumber: string): Promise<WarrantyCacheEntry | null> {
-    const key = createKey(serialNumber);
+    const key = this.createKey(serialNumber);
     const storedValues = await this.storage.get(key);
     const entry = storedValues[key];
 
@@ -35,24 +39,24 @@ export class ChromeStorageWarrantyCache implements WarrantyCache {
   }
 
   public async set(serialNumber: string, entry: WarrantyCacheEntry): Promise<void> {
-    await this.storage.set({ [createKey(serialNumber)]: structuredClone(entry) });
+    await this.storage.set({ [this.createKey(serialNumber)]: structuredClone(entry) });
   }
 
   public async delete(serialNumber: string): Promise<void> {
-    await this.storage.remove(createKey(serialNumber));
+    await this.storage.remove(this.createKey(serialNumber));
   }
 
   public async clear(): Promise<void> {
     const storedValues = await this.storage.get(null);
-    const cacheKeys = Object.keys(storedValues).filter((key) => key.startsWith(CACHE_KEY_PREFIX));
+    const cacheKeys = Object.keys(storedValues).filter((key) => key.startsWith(this.keyPrefix));
     if (cacheKeys.length > 0) {
       await this.storage.remove(cacheKeys);
     }
   }
-}
 
-function createKey(serialNumber: string): string {
-  return `${CACHE_KEY_PREFIX}${serialNumber.toUpperCase()}`;
+  private createKey(serialNumber: string): string {
+    return `${this.keyPrefix}${serialNumber.toUpperCase()}`;
+  }
 }
 
 function isWarrantyCacheEntry(value: unknown): value is WarrantyCacheEntry {

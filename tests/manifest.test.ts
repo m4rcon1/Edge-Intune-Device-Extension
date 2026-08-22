@@ -15,12 +15,12 @@ interface ExtensionManifest {
 }
 
 describe("Manifest V3", () => {
-  it("verwendet nur die minimal erforderlichen lokalen Berechtigungen", async () => {
+  it("verwendet nur die minimal erforderlichen Intune- und Lenovo-Berechtigungen", async () => {
     const manifest = manifestJson as ExtensionManifest;
 
     expect(manifest.manifest_version).toBe(3);
     expect(manifest.permissions).toEqual(["storage"]);
-    expect(manifest.host_permissions).toBeUndefined();
+    expect(manifest.host_permissions).toEqual(["https://pcsupport.lenovo.com/*"]);
     expect(manifest.background).toEqual({ service_worker: "background.js", type: "module" });
     expect(manifest.content_scripts).toEqual([
       expect.objectContaining({
@@ -33,7 +33,8 @@ describe("Manifest V3", () => {
 
     const serializedManifest = JSON.stringify(manifest);
     expect(serializedManifest).not.toContain("<all_urls>");
-    expect(serializedManifest).not.toContain("lenovo.com");
     expect(serializedManifest).not.toContain("graph.microsoft.com");
+    expect(serializedManifest).not.toContain("webRequest");
+    expect(manifest.permissions).not.toContain("tabs");
   });
 });

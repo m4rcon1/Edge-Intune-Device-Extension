@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { ChromeStorageWarrantyCache } from "../src/cache/chrome-storage-warranty-cache";
+import {
+  ChromeStorageWarrantyCache,
+  WARRANTY_CACHE_NAMESPACES,
+} from "../src/cache/chrome-storage-warranty-cache";
 import type { WarrantyCacheEntry } from "../src/cache/warranty-cache";
 import { FakeExtensionStorage } from "./helpers/fake-extension-storage";
 
@@ -68,6 +71,22 @@ describe("ChromeStorageWarrantyCache", () => {
 
     expect(storage.read("warranty-cache-v1:PF123ABC")).toBeUndefined();
     expect(storage.read("future-extension-setting")).toBe(true);
+  });
+
+  it("trennt echte Lenovo-Daten vom bisherigen Mock-Cache", async () => {
+    const storage = new FakeExtensionStorage();
+    await storage.set({ "warranty-cache-v1:PF123ABC": SUCCESS_ENTRY });
+    const cache = new ChromeStorageWarrantyCache(
+      storage,
+      () => new Date("2026-08-21T09:00:00.000Z"),
+      WARRANTY_CACHE_NAMESPACES.lenovoWeb,
+    );
+
+    await expect(cache.get("PF123ABC")).resolves.toBeNull();
+    await cache.set("PF123ABC", SUCCESS_ENTRY);
+
+    expect(storage.read("warranty-cache-v1:PF123ABC")).toEqual(SUCCESS_ENTRY);
+    expect(storage.read("warranty-cache-v2:lenovo-web:PF123ABC")).toEqual(SUCCESS_ENTRY);
   });
 });
 

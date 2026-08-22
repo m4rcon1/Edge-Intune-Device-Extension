@@ -42,10 +42,14 @@ describe("PopoverController", () => {
     controller.toggle(anchor, { deviceName: "NB-PF123ABC", serialNumber: "PF123ABC" });
 
     expect(document.querySelector('[role="status"]')?.textContent).toContain("werden geladen");
+    expectLenovoLink();
     await vi.waitFor(() => expect(document.querySelector(".coverage-card")).not.toBeNull());
     expect(document.querySelector(".warranty-popover")?.textContent).not.toContain("Kaufdatum");
+    expect(document.querySelector(".warranty-popover")?.textContent).toContain("Garantietyp");
+    expect(document.querySelector(".warranty-popover")?.textContent).toContain("Premier Support");
     expect(document.querySelector(".warranty-popover")?.textContent).toContain("Garantiebeginn");
     expect(document.querySelector(".warranty-popover")?.textContent).toContain("Garantieende");
+    expectLenovoLink();
     expect(anchor.getAttribute("aria-expanded")).toBe("true");
   });
 
@@ -80,6 +84,7 @@ describe("PopoverController", () => {
     await vi.waitFor(() =>
       expect(document.querySelector('[role="alert"]')?.textContent).toContain("Netzwerkfehler"),
     );
+    expectLenovoLink("PFNETWORK");
 
     document.querySelector<HTMLButtonElement>(".refresh-button")?.click();
     await vi.waitFor(() => expect(document.querySelector(".coverage-card")).not.toBeNull());
@@ -87,6 +92,26 @@ describe("PopoverController", () => {
       "PFNETWORK",
       expect.objectContaining({ forceRefresh: true }),
     );
+  });
+
+  it("stellt externe Werte nur als Text dar", async () => {
+    const resultWithMarkup: WarrantyLookupResult = {
+      ...RESULT,
+      warranty: {
+        ...RESULT.warranty,
+        coverages: [{ warrantyType: '<img src=x onerror="alert(1)">' }],
+      },
+    };
+    controller = new PopoverController(createLookup(vi.fn().mockResolvedValue(resultWithMarkup)));
+
+    controller.toggle(createAnchor(), {
+      deviceName: "NB-PF123ABC",
+      serialNumber: "PF123ABC",
+    });
+    await vi.waitFor(() => expect(document.querySelector(".coverage-card")).not.toBeNull());
+
+    expect(document.querySelector(".coverage-card img")).toBeNull();
+    expect(document.querySelector(".coverage-card")?.textContent).toContain("<img src=x");
   });
 
   it("zeigt keine verspätete Antwort des zuvor geöffneten Geräts", async () => {
@@ -157,4 +182,12 @@ function createAnchor(): HTMLButtonElement {
   anchor.type = "button";
   document.body.append(anchor);
   return anchor;
+}
+
+function expectLenovoLink(serialNumber = "PF123ABC"): void {
+  const link = document.querySelector<HTMLAnchorElement>(".lenovo-warranty-link");
+  expect(link?.textContent).toBe("Weitere Informationen bei Lenovo ↗");
+  expect(link?.href).toBe(`https://pcsupport.lenovo.com/ch/de/products/${serialNumber}/warranty`);
+  expect(link?.target).toBe("_blank");
+  expect(link?.rel.split(" ").sort()).toEqual(["noopener", "noreferrer"]);
 }
