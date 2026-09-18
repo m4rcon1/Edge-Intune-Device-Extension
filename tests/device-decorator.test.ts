@@ -8,7 +8,12 @@ describe("DeviceDecorator", () => {
   });
 
   it("fügt pro gültigem Gerät genau ein Informationssymbol ein", () => {
-    document.body.innerHTML = createTable("NB-PF123ABC", "DESKTOP-1042", "NB-INVALID-NAME");
+    document.body.innerHTML = createTable(
+      "NB-PF123ABC",
+      "D-MJ123ABC",
+      "DESKTOP-1042",
+      "NB-INVALID-NAME",
+    );
     const tableBody = document.querySelector("tbody");
     if (tableBody === null) throw new Error("Test-Tabelle fehlt");
     const popover = {
@@ -21,10 +26,12 @@ describe("DeviceDecorator", () => {
     decorator.scan();
     decorator.scan();
 
-    expect(tableBody.querySelectorAll(".warranty-info-button")).toHaveLength(1);
-    expect(
-      tableBody.querySelector<HTMLButtonElement>(".warranty-info-button")?.dataset.serialNumber,
-    ).toBe("PF123ABC");
+    const buttons = tableBody.querySelectorAll<HTMLButtonElement>(".warranty-info-button");
+    expect(buttons).toHaveLength(2);
+    expect(Array.from(buttons, (button) => button.dataset.serialNumber)).toEqual([
+      "PF123ABC",
+      "MJ123ABC",
+    ]);
     decorator.stop();
   });
 
@@ -39,12 +46,12 @@ describe("DeviceDecorator", () => {
     });
     decorator.start();
 
-    name.textContent = "NB-PF555AAA";
+    name.textContent = "D-MJ555AAA";
     await waitForMutationObserver();
     expect(tableBody.querySelectorAll(".warranty-info-button")).toHaveLength(1);
     expect(
       tableBody.querySelector<HTMLButtonElement>(".warranty-info-button")?.dataset.serialNumber,
-    ).toBe("PF555AAA");
+    ).toBe("MJ555AAA");
 
     name.textContent = "DESKTOP-REUSED";
     await waitForMutationObserver();

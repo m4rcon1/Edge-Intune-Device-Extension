@@ -3,12 +3,12 @@ export interface ParsedDeviceName {
   serialNumber: string;
 }
 
-const LENOVO_NOTEBOOK_NAME = /^NB-([A-Z0-9]+)$/i;
+const LENOVO_DEVICE_NAME = /^(?:NB|D)-([A-Z0-9]+)$/i;
 const LENOVO_SERIAL_NUMBER = /^[A-Z0-9]+$/i;
 
 export function parseDeviceName(value: string): ParsedDeviceName | null {
   const deviceName = value.trim();
-  const match = LENOVO_NOTEBOOK_NAME.exec(deviceName);
+  const match = LENOVO_DEVICE_NAME.exec(deviceName);
   const serialNumber = match?.[1];
 
   if (serialNumber === undefined) {

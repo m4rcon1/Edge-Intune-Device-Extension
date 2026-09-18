@@ -68,10 +68,11 @@ describe("IntuneDeviceListAdapter", () => {
     adapter.stop();
   });
 
-  it("dekoriert vier von sechs anonymisierten Geräten genau einmal", async () => {
+  it("dekoriert Notebooks und Desktops unter anonymisierten Geräten genau einmal", async () => {
     const detailsList = createDetailsList([
       "NB-PF111AAA",
       "NB-PF222BBB",
+      "D-MJ555EEE",
       "DESKTOP-TEST",
       "NB-PF333CCC",
       "TESTDEVICE",
@@ -89,10 +90,11 @@ describe("IntuneDeviceListAdapter", () => {
     const buttons = detailsList.querySelectorAll<HTMLButtonElement>(
       ".warranty-info-button--intune",
     );
-    expect(buttons).toHaveLength(4);
+    expect(buttons).toHaveLength(5);
     expect(Array.from(buttons, (button) => button.dataset.serialNumber)).toEqual([
       "PF111AAA",
       "PF222BBB",
+      "MJ555EEE",
       "PF333CCC",
       "PF444DDD",
     ]);
@@ -143,11 +145,11 @@ describe("IntuneDeviceListAdapter", () => {
     const nameLink = detailsList.querySelector<HTMLAnchorElement>("a");
     if (nameLink === null) throw new Error("Fixture-Link fehlt");
 
-    nameLink.textContent = "NB-PF222BBB";
+    nameLink.textContent = "D-MJ222BBB";
     await flushObservers();
     expect(
       detailsList.querySelector<HTMLButtonElement>(".warranty-info-button")?.dataset.serialNumber,
-    ).toBe("PF222BBB");
+    ).toBe("MJ222BBB");
     expect(popover.closeIfAnchoredWithin).toHaveBeenCalled();
 
     nameLink.textContent = "DESKTOP-REUSED";

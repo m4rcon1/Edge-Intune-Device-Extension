@@ -1,4 +1,4 @@
-# Edge Intune Device Extension – Phase 5B
+# Edge Intune Device Extension – Phase 5C
 
 Die Manifest-V3-Extension ergänzt sowohl die lokale Mock-Seite als auch die echte
 Windows-Geräteliste im Microsoft Intune Admin Center. In Intune fragt sie Lenovo-Garantiedaten erst
@@ -35,7 +35,8 @@ wenn die gebaute Extension tatsächlich im Browser geladen ist.
 
 ## Funktionsumfang
 
-- Erkennung von Gerätenamen nach `NB-[Seriennummer]`
+- Erkennung von Lenovo-Notebooks nach `NB-[Seriennummer]`
+- Erkennung von Lenovo-Desktops nach `D-[Seriennummer]`
 - sprachunabhängige, fail-closed Erkennung der echten Intune-DetailsList
 - idempotente Informationssymbole, auch bei dynamischen und wiederverwendeten Zeilen
 - Popover mit Lade-, Erfolgs- und strukturierten Fehlerzuständen
@@ -49,6 +50,16 @@ wenn die gebaute Extension tatsächlich im Browser geladen ist.
 - persistenter Extension-Cache mit `chrome.storage.local`
 - echte Lenovo-Abfrage in Intune ausschliesslich nach Benutzeraktion und Cache Miss
 - gerätespezifischer Lenovo-Link in Lade-, Erfolgs- und Fehlerzuständen
+
+Unterstützte Namensschemata sind ausschliesslich:
+
+```text
+NB-<SERIENNUMMER> – Lenovo Notebook
+D-<SERIENNUMMER>  – Lenovo Desktop
+```
+
+Bei beiden Schemas wird nur der Teil nach dem Präfix als Lenovo-Seriennummer verwendet. Andere
+Präfixe werden nicht akzeptiert.
 
 ## Lenovo-Datenquelle
 
@@ -231,8 +242,9 @@ Danach:
 
 1. Selbst bei [https://intune.microsoft.com](https://intune.microsoft.com) anmelden.
 2. **Geräte → Windows → Windows-Geräte** öffnen.
-3. Prüfen, dass jeder gültige anonymisierte Name nach `NB-[Seriennummer]` genau ein `i` erhält.
-4. Prüfen, dass nicht konforme Namen kein Symbol erhalten.
+3. Prüfen, dass jeder gültige anonymisierte Name nach `NB-[Seriennummer]` oder
+   `D-[Seriennummer]` genau ein `i` erhält.
+4. Prüfen, dass Namen mit anderen oder fehlerhaften Präfixen kein Symbol erhalten.
 5. Für alle gültigen Geräte Popover, Ladezustand, echtes Lenovo-Ergebnis und Schliessen per erneutem Klick,
    Aussenklick und `Escape` prüfen.
 6. Eine andere rein lesende Intune-Ansicht öffnen und zur Windows-Geräteliste zurückkehren. Die
@@ -247,30 +259,23 @@ Danach:
 11. Frame- und Service-Worker-Konsole auf unbehandelte Fehler sowie Ausgaben realer Seriennummern
     prüfen.
 
-### Phase-5B-Abnahme
+### Phase-5C-Abnahme
 
-1. Nach `npm ci` und `npm run build` die entpackte Extension in Edge neu laden. Alte Mock-Cachewerte
-   dürfen nach dem Upgrade nicht im Intune-Popover erscheinen; der neue Namespace macht dafür
-   keine manuelle Storage-Bereinigung erforderlich.
-2. Beim ersten gültigen Gerät `i` auswählen: erst Ladezustand, danach Garantietyp, Garantiebeginn
-   und Garantieende prüfen. Es darf kein Kaufdatum erscheinen.
-3. Zwei weitere vorbereitete gültige Geräte einzeln öffnen. Die Daten müssen jeweils zum aktuellen
-   Gerät gehören.
-4. Ein bereits erfolgreich geladenes Gerät schliessen und erneut öffnen. Im Popover muss
-   `Aus lokalem Cache` erscheinen. Das ist die sichere Prüfung ohne Network-Logging oder Ausgabe
-   einer Seriennummer.
-5. **Weitere Informationen bei Lenovo ↗** auswählen. Lenovo muss in einem neuen Tab das richtige
-   Gerät öffnen beziehungsweise auf dessen kanonischen Produktpfad weiterleiten; Intune bleibt
-   geöffnet.
-6. Der Link bei einem API-Fehler wird automatisiert getestet. Eine manuelle Störung des Lenovo-
-   Dienstes oder seines Schutzmechanismus ist nicht erforderlich.
-7. Prüfen, dass die zwei nicht konformen Gerätenamen weiterhin kein `i` erhalten.
-8. Filtern, sortieren, scrollen und zwischen Intune-Ansichten navigieren. Symbole dürfen weder
+1. Nach `npm ci` und `npm run build` die entpackte Extension in Edge neu laden.
+2. Bei einem vorhandenen `NB-`-Gerät prüfen, dass weiterhin genau ein `i` erscheint.
+3. Bei einem vorhandenen `D-`-Gerät prüfen, dass jetzt genau ein `i` erscheint. Das Popover muss
+   die echten Lenovo-Garantiedaten des Desktops anzeigen.
+4. Den Desktop schliessen und erneut öffnen. Im Popover muss `Aus lokalem Cache` erscheinen. Danach
+   den manuellen Refresh auslösen und die erneute Abfrage prüfen.
+5. Beim Desktop **Weitere Informationen bei Lenovo ↗** auswählen. Lenovo muss in einem neuen Tab
+   das richtige Gerät öffnen; Intune bleibt geöffnet.
+6. Prüfen, dass ein nicht unterstützter oder fehlerhafter Gerätename weiterhin kein `i` erhält.
+7. Filtern, sortieren, scrollen und zwischen Intune-Ansichten navigieren. Symbole dürfen weder
    dupliziert noch einem falschen Gerät zugeordnet werden.
-9. Auf anderen Intune-Listen, beispielsweise Plattform-Skripten, dürfen keine Symbole und keine
+8. Auf anderen Intune-Listen, beispielsweise Plattform-Skripten, dürfen keine Symbole und keine
    Lenovo-Abfragen entstehen.
-10. Konsole des React-Blade-Frames und Service Worker prüfen: keine unbehandelten Fehler, keine
-    Lenovo-Rohantworten und keine normalen Produktionslogs mit vollständigen Seriennummern.
+9. Konsole des React-Blade-Frames und Service Worker prüfen: keine unbehandelten Fehler, keine
+   Lenovo-Rohantworten und keine normalen Produktionslogs mit vollständigen Seriennummern.
 
 Die Tests dürfen ausschliesslich lesende Navigation, Sortierung und Darstellung verwenden. Keine
 Geräteaktionen, Synchronisationen oder Konfigurationsänderungen ausführen.
