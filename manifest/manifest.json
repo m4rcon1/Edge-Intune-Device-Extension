@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Intune Lenovo Warranty Prototype",
+  "name": "Intune Lenovo Warranty Extension",
   "version": "0.2.0",
-  "description": "Manifest-V3-Prototyp für Lenovo-Garantieinformationen in Microsoft Intune.",
+  "description": "Lenovo warranty information for supported Windows devices in Microsoft Intune.",
   "permissions": ["storage"],
   "host_permissions": ["https://pcsupport.lenovo.com/*"],
   "background": {

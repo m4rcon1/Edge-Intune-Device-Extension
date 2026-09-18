@@ -8,4 +8,7 @@ await rm(outputDirectory, { recursive: true, force: true });
 await mkdir(outputDirectory, { recursive: true });
 await cp("manifest/manifest.json", `${outputDirectory}/manifest.json`);
 
-await Promise.all([build(extensionContentBuildOptions), build(extensionBackgroundBuildOptions)]);
+await Promise.all([
+  build({ ...extensionContentBuildOptions, sourcemap: false }),
+  build({ ...extensionBackgroundBuildOptions, sourcemap: false }),
+]);

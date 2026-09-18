@@ -3,6 +3,9 @@ import manifestJson from "../manifest/manifest.json";
 
 interface ExtensionManifest {
   manifest_version?: number;
+  name?: string;
+  version?: string;
+  description?: string;
   permissions?: string[];
   host_permissions?: string[];
   background?: { service_worker?: string; type?: string };
@@ -19,6 +22,9 @@ describe("Manifest V3", () => {
     const manifest = manifestJson as ExtensionManifest;
 
     expect(manifest.manifest_version).toBe(3);
+    expect(manifest.name).toBe("Intune Lenovo Warranty Extension");
+    expect(manifest.version).toBe("0.2.0");
+    expect(manifest.description).not.toMatch(/prototype|prototyp/i);
     expect(manifest.permissions).toEqual(["storage"]);
     expect(manifest.host_permissions).toEqual(["https://pcsupport.lenovo.com/*"]);
     expect(manifest.background).toEqual({ service_worker: "background.js", type: "module" });

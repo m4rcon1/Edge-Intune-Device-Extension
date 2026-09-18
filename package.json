@@ -2,7 +2,7 @@
   "name": "edge-intune-device-extension",
   "version": "0.2.0",
   "private": true,
-  "description": "Manifest-V3-Prototyp fuer Lenovo-Garantieinformationen in Microsoft Intune mit lokaler Mock-Seite.",
+  "description": "Manifest V3 extension for Lenovo warranty information in Microsoft Intune.",
   "type": "module",
   "engines": {
     "node": ">=20"
